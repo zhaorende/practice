@@ -1,0 +1,37 @@
+/* 
+目标格式如下，这是对象数组
+ */
+[{
+    value: "0",
+    text: "第一项",
+}, {
+    value: "1",
+    text: "第一项"
+}, {
+    value: "2",
+    text: "第三项"
+}, {
+    value: "3",
+    text: "第四项"
+}, {
+    value: "4",
+    text: "第五项"
+}]
+
+/* 
+获得的数据格式
+rows[i].shopclassno //value
+rows[i].shopclassname //text
+ */
+
+/* 
+进行转换
+var datalist= new Array();//定义一个数组
+for(var i=0;i<rows.length;i++){
+	var datastr=new Object();//定义一个对象
+	datastr.value=rows[i].shopclassno;
+	datastr.text=rows[i].shopclassname;
+	datalist.push(datastr);//将对象放入数组
+}
+userPicker.setData(datalist);
+ */

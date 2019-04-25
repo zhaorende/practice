@@ -1,0 +1,140 @@
+/* 
+前台---------------------------------------------------------------------------------------------
+lat 纬度
+lng 经度
+r 范围半径
+ */
+//设置初始值
+var lat = 0,lng = 0,r = 2000;
+/* 
+当plusReady初始化完毕后，获取当前位置 
+将转换后的BD09 协议坐标的纬度赋值给lat
+将转换后的BD09 协议坐标的经度赋值给lng
+enableHighAccuracy 是否高精确度获取位置信息
+provider 优先使用的定位模块
+API HTML5+ geolocation方法
+*/
+mui.plusReady(function() {
+	plus.geolocation.getCurrentPosition(function(p) {
+		if (p.coordsType == 'gcj02') {
+			var zhd = Convert_GCJ02_To_BD09(p.coords);
+			lat = zhd.latitude;
+			lng = zhd.longitude;
+		}
+	}, function(e) {
+		alert('Geolocation error: ' + e.message);
+	}, {
+		enableHighAccuracy: false,
+		provider: "baidu"
+	});
+				
+});
+/* 
+坐标转换的方法
+ */
+var x_pi = 3.14159265358979324 * 3000.0 / 180.0;
+/// <summary>
+/// 中国正常坐标系GCJ02协议的坐标，转到 百度地图对应的 BD09 协议坐标
+///  point 为传入的对象，例如{lat:xxxxx,lng:xxxxx}
+/// </summary>
+function Convert_GCJ02_To_BD09(point) {
+	var x = point.longitude,
+		y = point.latitude;
+	var z = Math.sqrt(x * x + y * y) + 0.00002 * Math.sin(y * x_pi);
+	var theta = Math.atan2(y, x) + 0.000003 * Math.cos(x * x_pi);
+	point.longitude = z * Math.cos(theta) + 0.0065;
+	point.latitude = z * Math.sin(theta) + 0.006;
+	return point;
+}
+/// <summary>
+/// 百度地图对应的 BD09 协议坐标，转到 中国正常坐标系GCJ02协议的坐标
+/// </summary>
+function Convert_BD09_To_GCJ02(point) {
+	var x = point.lng - 0.0065,
+		y = point.lat - 0.006;
+	var z = Math.sqrt(x * x + y * y) - 0.00002 * Math.sin(y * x_pi);
+	var theta = Math.atan2(y, x) - 0.000003 * Math.cos(x * x_pi);
+	point.lng = z * Math.cos(theta);
+	point.lat = z * Math.sin(theta);
+	return point;
+}
+/* 
+获取当前城市
+result.name 获取当前城市名称
+ */
+var map = new BMap.Map("allmap");
+
+function myFun(result){
+	var cityName = result.name;
+	map.setCenter(cityName);
+	$("#cityn").text(cityName);
+}
+var myCity = new BMap.LocalCity();
+myCity.get(myFun);
+
+/* 
+zrd 计算两点之间直线距离
+lat1 当前位置的纬度
+lng1 当前位置的经度
+lat2 点位置的纬度
+lng2 点位置的经度
+s 返回当前位置与点之间的距离，单位米
+ */
+var EARTH_RADIUS = 6378.137; //地球半径
+function rad(d) {
+	return d * Math.PI / 180.0;
+}
+
+function GetDistance(lat1, lng1, lat2, lng2) {
+	var radLat1 = rad(lat1);
+	var radLat2 = rad(lat2);
+	var a = radLat1 - radLat2;
+	var b = rad(lng1) - rad(lng2);
+	var s = 2 * Math.asin(Math.sqrt(Math.pow(Math.sin(a / 2), 2) +
+		Math.cos(radLat1) * Math.cos(radLat2) * Math.pow(Math.sin(b / 2), 2)));
+	s = s * EARTH_RADIUS;
+	s = Math.round(s * 10000) / 10000;
+	return s;
+}
+
+/*
+后台---------------------------------------------------------------------------------------------
+中国正常坐标系GCJ02协议的坐标，转到 百度地图对应的 BD09 协议坐标
+将转换后的坐标传入接口方法中
+latitude 纬度(已转换)
+longitude 经度(已转换)
+raidus 范围半径
+ */
+if(latitude!=0&&longitude!=0&&raidus!=0){
+	double arr[]=getAround( latitude, longitude, raidus);
+	double minLat=arr[0],maxLat=arr[1],minLng=arr[2],maxLng=arr[3];
+	c.add(Restrictions.between("latitude", String.valueOf(minLat), String.valueOf(maxLat)));
+	c.add(Restrictions.between("longitude", String.valueOf(minLng), String.valueOf(maxLng)));
+	//范围查询
+	//SELECT * FROM 商户表 WHERE (latitude BETWEEN minLat AND maxLat) and (longitude BETWEEN minLng and maxLng);
+}
+List list = getBaseService().findByCriteria(c, recPerPage, page);
+
+//根据当前坐标，范围计算最大最小坐标点
+//筛选附近的商户
+
+//1、首先要给数据库商户表家里索引，经度与纬度联合索引 
+//2、依据当前点，范围反向计算出最大、最小经纬度 
+//3、使用范围查询 单位米
+//double[0] minLat double[1]maxLat double[2] minLng double[3] maxLng
+public static double[] getAround(double latitude,double longitude,double raidus)
+{
+	double PI = 3.14159265;
+	double degree = (24901*1609)/360.0;
+	double dpmLat = 1/degree;
+	double radiusLat = dpmLat*raidus;
+	double minLat = latitude - radiusLat;
+	double maxLat = latitude + radiusLat;
+	double mpdLng = degree*Math.cos(latitude * (PI/180));
+	double dpmLng = 1 / mpdLng;
+	double radiusLng = dpmLng*raidus;
+	double minLng = longitude - radiusLng;
+	double maxLng = longitude + radiusLng;
+	double arr[]={minLat,maxLat,minLng,maxLng};
+	return arr;
+}

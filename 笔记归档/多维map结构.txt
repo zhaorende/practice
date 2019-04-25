@@ -1,0 +1,18 @@
+Criteria orderuser = this.orderservice.getcreateCriteria();
+orderuser.add(Restrictions.eq("orderNumber", search.getOrderNumber()));
+List<OrderUser> temp = this.service.findByCriteria(orderuser);
+total = temp.size();
+List<HashMap<String, Object>> listmap = new ArrayList<HashMap<String,Object>>();
+for(int i=0; i< temp.size(); i++)
+{
+	OrderUser orderlist = temp.get(i);
+	Map<String, Object> maporder = new HashMap<String, Object>();
+	Criteria orderinfo = this.orderinfo.getcreateCriteria();
+	orderinfo.add(Restrictions.eq("orderid", orderlist.getId()));
+	List<OrderInfomation> orderinfomation = this.orderinfo.findByCriteria(orderinfo);
+					
+	maporder.put("listitem", orderlist);
+	maporder.put("orderinfo", orderinfomation);
+	listmap.add((HashMap<String, Object>) maporder);
+}
+map.put("data", listmap);
